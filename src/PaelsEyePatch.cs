@@ -37,7 +37,7 @@ public class PaelsLookingEyePatch()
     {
         foreach (var child in parent.GetChildren())
         {
-            if (child.GetNode<TextureRect>(_PupilNode) != null)
+            if (child.GetNodeOrNull<TextureRect>(_PupilNode) != null)
                 return (TextureRect)child;
         }
         return null;
