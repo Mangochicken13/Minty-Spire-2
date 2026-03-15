@@ -31,6 +31,17 @@ public class PaelsLookingEyePatch()
     private static PackedScene LookingEyeScene => ResourceLoader.Load<PackedScene>("res://MintySpire2/scenes/looking_eye/looking_eye.tscn");
 
     private const string _LookingEyeNode = "LookingEye";
+    private const string _PupilNode = "Pupil";
+
+    private static TextureRect? HasLookingEyeScene(Node parent)
+    {
+        foreach (var child in parent.GetChildren())
+        {
+            if (child.GetNode<TextureRect>(_PupilNode) != null)
+                return (TextureRect)child;
+        }
+        return null;
+    }
 
     // Inventory visuals
     [HarmonyPatch(typeof(NRelicInventoryHolder), nameof(NRelicInventoryHolder._Ready))]
@@ -43,12 +54,9 @@ public class PaelsLookingEyePatch()
         if (model is PaelsEye)
         {
             var icon_node = relic.Icon;
-
             icon_node.Texture = PaelsEyeBase;
-
-            var scene_instance = LookingEyeScene.Instantiate();
-            icon_node.AddChild(scene_instance);
-            scene_instance.Owner = icon_node;
+            if (HasLookingEyeScene(icon_node) == null)
+                icon_node.AddChild(LookingEyeScene.Instantiate());
         }
     }
 
@@ -63,7 +71,9 @@ public class PaelsLookingEyePatch()
         if (model is PaelsEye)
         {
             var icon_node = relic.Icon;
-            icon_node.AddChild(LookingEyeScene.Instantiate());
+            icon_node.Texture = PaelsEyeBase;
+            if (HasLookingEyeScene(icon_node) == null)
+                icon_node.AddChild(LookingEyeScene.Instantiate());
         }
     }
 
@@ -75,9 +85,11 @@ public class PaelsLookingEyePatch()
         if (__instance.Event is AncientEventModel && __instance.Option.Relic is PaelsEye)
         {
             var icon_node = __instance.GetNode<TextureRect>("%RelicIcon");
-            icon_node.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            // The options are slightly rectangular, this allows my child nodes with FullRect layouts to function properly
+            icon_node.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter; 
             icon_node.Texture = PaelsEyeBase;
-            icon_node.AddChild(LookingEyeScene.Instantiate());
+            if (HasLookingEyeScene(icon_node) == null)
+                icon_node.AddChild(LookingEyeScene.Instantiate());
         }
     }
 
@@ -90,7 +102,8 @@ public class PaelsLookingEyePatch()
         {
             var icon_node = __instance._relicNode.GetChild(0) as TextureRect;
             icon_node.Texture = PaelsEyeBase;
-            icon_node.AddChild(LookingEyeScene.Instantiate());
+            if (HasLookingEyeScene(icon_node) == null)
+                icon_node.AddChild(LookingEyeScene.Instantiate());
         }
     }
 
@@ -100,7 +113,8 @@ public class PaelsLookingEyePatch()
     static void OnInspectRelicReady(NInspectRelicScreen __instance)
     {
         var icon_node = __instance._relicImage;
-        icon_node.AddChild(LookingEyeScene.Instantiate());
+        if (HasLookingEyeScene(icon_node) == null)
+            icon_node.AddChild(LookingEyeScene.Instantiate());
     }
 
     [HarmonyPatch(typeof(NInspectRelicScreen), nameof(NInspectRelicScreen.UpdateRelicDisplay))]

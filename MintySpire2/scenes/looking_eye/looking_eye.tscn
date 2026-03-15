@@ -16,7 +16,7 @@ texture = ExtResource("1_8tm3o")
 expand_mode = 1
 stretch_mode = 4
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="Pupil" type="TextureRect" parent="."]
 custom_minimum_size = Vector2(60, 60)
 layout_mode = 1
 anchors_preset = 15
