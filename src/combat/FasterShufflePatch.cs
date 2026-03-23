@@ -13,22 +13,18 @@ namespace MintySpire2.combat;
 public class FasterShufflePatch
 {
 
-    private static float GetMultiplier()
+    private static double GetMultiplier()
     {
-        return 0.5f;
+        return Config.ShuffleSpeed;
     }
     
     //Transpiler patch
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(CardPileCmd), nameof(CardPileCmd.Shuffle), MethodType.Async)]
     public static class CardPileCmdShufflePatch
     {
-        static MethodBase TargetMethod()
-        {
-            return typeof(CardPileCmd).Method(nameof(CardPileCmd.Shuffle)).PatchAsync();
-        }
         private static float MultiplyShuffleSpeed(float normalTime)
         {
-            return normalTime *  GetMultiplier();
+            return Convert.ToSingle(normalTime *  GetMultiplier());
         }
         
         [HarmonyTranspiler]
