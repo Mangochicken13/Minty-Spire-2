@@ -171,26 +171,11 @@ public static class SummedIncomingDamageRender
     {
         ValidBars.ForEachLive(RefreshVisibilityAndText);
     }
-    
-    /// <summary>
-    ///     Refresh labels if the hand changes in case end turn damage cards are added
-    /// </summary>
-    /// <param name="__instance"></param>
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(CardPile), "InvokeContentsChanged")]
-    private static void CatchHandChange(CardPile __instance)
-    {
-        if (__instance is { Type: PileType.Hand })
-        {
-            var player = LocalContext.GetMe(RunManager.Instance.State);
-            if (player?.PlayerCombatState == null) return;
-            ValidBars.ForEachLive(RefreshVisibilityAndText);
-        }
-    }
 
+    private static int incomingCardDamage = 0;
+    
     private static int GetIncomingCardDamage(Player player)
     {
-        
         var handPile = CardPile.Get(PileType.Hand, player);
         if (handPile == null)
             return 0;
@@ -210,6 +195,28 @@ public static class SummedIncomingDamageRender
         }
 
         return totalDamage;
+    }
+    
+    /// <summary>
+    ///     Refresh labels if the hand changes in case end turn damage cards are added
+    /// </summary>
+    /// <param name="__instance"></param>
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(CardPile), "InvokeContentsChanged")]
+    private static void CatchHandChange(CardPile __instance)
+    {
+        if (__instance is { Type: PileType.Hand })
+        {
+            var player = LocalContext.GetMe(RunManager.Instance.State);
+            if (player?.PlayerCombatState == null) return;
+            
+            var newInc = GetIncomingCardDamage(player);
+            if (newInc != incomingCardDamage)
+            {
+                incomingCardDamage = newInc;
+                ValidBars.ForEachLive(RefreshVisibilityAndText);
+            }
+        }
     }
 
     /// <summary>
@@ -237,8 +244,8 @@ public static class SummedIncomingDamageRender
         // Constrict power
         incomingDamage += creature.GetPower<ConstrictPower>()?.Amount ?? 0;
         
-        // End turn self damage cards
-        incomingDamage += GetIncomingCardDamage(creature.Player!);
+        // End turn self damage cards (updated when the hand changes)
+        incomingDamage += incomingCardDamage;
 
         return incomingDamage;
     }
