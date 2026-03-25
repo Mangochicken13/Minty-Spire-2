@@ -12,6 +12,7 @@ Successor of the StS1 mod with the same name. This is a compilation of small qua
 ### Relic Reminders
 - Adds an indicator to attacks when pen nib is active (book)
 - Make History Course pulse and display a card tooltip (kiooeht)
+- Display relics near the end turn button if they would trigger if you end your turn now
 
 ### Other
 - Heal preview above the rest button at rest sites
