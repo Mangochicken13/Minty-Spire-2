@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Models;
@@ -23,6 +24,7 @@ public static class EndTurnRelicReminderService
         { typeof(ArtOfWar), ShouldShowStatusActive },
         { typeof(PaelsTears), (relic, me) => ShouldShowPaelsTears((PaelsTears)relic, me) },
         { typeof(DiamondDiadem), ShouldShowStatusActive },
+        { typeof(CloakClasp), (relic, me) => ShouldShowCloakClasp((CloakClasp)relic, me) },
     };
 
     public static event Action? RemindersChanged;
@@ -66,5 +68,11 @@ public static class EndTurnRelicReminderService
             return false;
 
         return me.PlayerCombatState!.Energy > 0;
+    }
+    
+    private static bool ShouldShowCloakClasp(CloakClasp cloakClasp, Player me)
+    {
+        var hand = PileType.Hand.GetPile(cloakClasp.Owner).Cards;
+        return hand.Count > 0;
     }
 }

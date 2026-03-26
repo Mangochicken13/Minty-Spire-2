@@ -27,6 +27,7 @@ public class EndTurnRelicReminderTriggers
         }
     }
 
+    // TODO: Replace with custom model runhooks once available
     [HarmonyPatch]
     public static class RelicSpecificNotificationPatches
     {
@@ -41,6 +42,7 @@ public class EndTurnRelicReminderTriggers
                 typeof(PaelsEye).Method(nameof(PaelsEye.AfterTakingExtraTurn)),
 
 
+                // TODO: Won't trigger if not another after card played trigger is there
                 // Orichalcum
                 typeof(Orichalcum).Method(nameof(Orichalcum.BeforeTurnEndVeryEarly)),
                 typeof(Orichalcum).Method(nameof(Orichalcum.BeforeTurnEnd)),
@@ -80,6 +82,8 @@ public class EndTurnRelicReminderTriggers
                 typeof(DiamondDiadem).Method(nameof(DiamondDiadem.AfterCardPlayed)),
                 typeof(DiamondDiadem).Method(nameof(DiamondDiadem.BeforeTurnEnd)),
                 typeof(DiamondDiadem).Method(nameof(DiamondDiadem.AfterSideTurnStart)),
+                
+                // Cloak Clasp doesn't really have a good trigger here
             ];
         }
 
