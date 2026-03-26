@@ -84,6 +84,7 @@ public class EndTurnRelicReminderTriggers
                 typeof(DiamondDiadem).Method(nameof(DiamondDiadem.AfterSideTurnStart)),
                 
                 // Cloak Clasp doesn't really have a good trigger here
+                // Ice Cream doesn't have a good hook either
             ];
         }
 

@@ -17,13 +17,16 @@ public static class EndTurnRelicReminderService
     private static readonly Dictionary<Type, Func<RelicModel, Player, bool>> ReminderRules = new()
     {
         { typeof(PaelsEye), ShouldShowStatusActive },
-        { typeof(Orichalcum), (_, me) => ShouldShowOrichalcum(me) },
-        { typeof(FakeOrichalcum), (_, me) => ShouldShowOrichalcum(me) },
         { typeof(RippleBasin), ShouldShowStatusActive },
         { typeof(Pocketwatch), ShouldShowStatusActive },
-        { typeof(ArtOfWar), ShouldShowStatusActive },
-        { typeof(PaelsTears), (relic, me) => ShouldShowPaelsTears((PaelsTears)relic, me) },
         { typeof(DiamondDiadem), ShouldShowStatusActive },
+        { typeof(ArtOfWar), ShouldShowStatusActive },
+        
+        { typeof(PaelsTears), ShouldShowRemainingEnergyRelic },
+        { typeof(IceCream), ShouldShowRemainingEnergyRelic },
+        
+        { typeof(Orichalcum), (_, me) => ShouldShowOrichalcum(me) },
+        { typeof(FakeOrichalcum), (_, me) => ShouldShowOrichalcum(me) },
         { typeof(CloakClasp), (relic, me) => ShouldShowCloakClasp((CloakClasp)relic, me) },
     };
 
@@ -62,9 +65,9 @@ public static class EndTurnRelicReminderService
         return me.Creature is { IsAlive: true, Block: <= 0 };
     }
     
-    private static bool ShouldShowPaelsTears(PaelsTears paelsTears, Player me)
+    private static bool ShouldShowRemainingEnergyRelic(RelicModel relic, Player me)
     {
-        if (paelsTears.Owner != me || !me.Creature.IsAlive)
+        if (relic.Owner != me || !me.Creature.IsAlive)
             return false;
 
         return me.PlayerCombatState!.Energy > 0;
