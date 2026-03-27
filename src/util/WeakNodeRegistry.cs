@@ -34,6 +34,25 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
         _refs.Add(new WeakReference<T>(node));
     }
 
+    public void Unregister(T node)
+    {
+        for (var i = _refs.Count - 1; i >= 0; i--)
+        {
+            if (!TryGetLiveNode(i, out var existing))
+            {
+                // Cleanup dead references
+                _refs.RemoveAt(i);
+                continue;
+            }
+
+            if (ReferenceEquals(existing, node))
+            {
+                _refs.RemoveAt(i);
+                break;
+            }
+        }
+    }
+
     public void ForEachLive(Action<T> action)
     {
         for (var i = _refs.Count - 1; i >= 0; i--)
