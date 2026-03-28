@@ -7,8 +7,8 @@ using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
-using MintySpire2.util;
 
 namespace MintySpire2.relicreminders;
 
@@ -21,15 +21,40 @@ namespace MintySpire2.relicreminders;
 public static class ThresholdRelicCardOverlay
 {
     private const string IconContainerNodeName = "MintyThresholdRelicIcons";
-    private static readonly WeakNodeRegistry<NCard> TrackedCards = new();
+    private static readonly HashSet<NCard> TrackedCards = [];
+
+    private static readonly List<Texture2D> _icons = new List<Texture2D>(4);
     
-    private static List<Texture2D>? _iconBuffer;
+    [HarmonyPatch(typeof(CombatRoom), "StartCombat")]
+    [HarmonyPostfix]
+    static void CatchCombatStart(IRunState? runState)
+    {
+        TrackedCards.Clear();
+        var me = LocalContext.GetMe(runState);
+        if (me == null) return;
+        foreach (var relic in me.Relics)
+        {
+            IdentifyThresholdRelic(relic);
+        }
+
+        me.RelicObtained += IdentifyThresholdRelic;
+    }
+
+    [HarmonyPatch(typeof(CombatRoom), "OnCombatEnded")]
+    [HarmonyPostfix]
+    static void CatchCombatEnd()
+    {
+        MainFile.Logger.Info("Cards are being cleared");
+        TrackedCards.Clear();
+        var me = LocalContext.GetMe(RunManager.Instance?.State);
+        if (me != null) me.RelicObtained -= IdentifyThresholdRelic;
+    }
 
     [HarmonyPatch(typeof(NCard), "UpdateVisuals")]
     [HarmonyPostfix]
     private static void UpdateVisuals_Postfix(NCard __instance, PileType pileType, CardPreviewMode previewMode)
     {
-        TrackedCards.Register(__instance);
+        TrackedCards.Add(__instance);
 
         if (pileType != PileType.Hand)
         {
@@ -52,12 +77,12 @@ public static class ThresholdRelicCardOverlay
     {
         [HarmonyTargetMethods]
         static IEnumerable<MethodBase> TargetMethods() =>
-            [
-                typeof(PenNib).Method(nameof(PenNib.AfterCardPlayed)),
-                typeof(Nunchaku).Method(nameof(Nunchaku.AfterCardPlayed)),
-                typeof(TuningFork).Method(nameof(TuningFork.AfterCardPlayed)),
-                typeof(GalacticDust).Method(nameof(GalacticDust.AfterStarsSpent)),
-            ];
+        [
+            typeof(PenNib).Method(nameof(PenNib.AfterCardPlayed)),
+            typeof(Nunchaku).Method(nameof(Nunchaku.AfterCardPlayed)),
+            typeof(TuningFork).Method(nameof(TuningFork.AfterCardPlayed)),
+            typeof(GalacticDust).Method(nameof(GalacticDust.AfterStarsSpent)),
+        ];
 
         [HarmonyPostfix]
         static void CatchAfterCardPlayed() => RefreshTrackedCardOverlays();
@@ -68,117 +93,92 @@ public static class ThresholdRelicCardOverlay
     public static void ShouldGlowGoldInternal_Postfix(CardModel __instance, ref bool __result)
     {
         if (!__result)
-            __result = HasAnyActiveThresholdIcon(__instance, GetThresholdRelics());
+            __result = HasAnyActiveThresholdIcon(__instance);
     }
+
 
     private static void RefreshTrackedCardOverlays()
     {
-        var relics = GetThresholdRelics();
-        TrackedCards.ForEachLive(card => RefreshCardOverlay(card, relics));
+        MainFile.Logger.Info($"Tracked cards: {TrackedCards.Count}");
+        foreach (var card in TrackedCards)
+        {
+            RefreshCardOverlay(card);
+        }
     }
 
-    private static void RefreshCardOverlay(NCard card, in ThresholdRelics relics)
+    private static void RefreshCardOverlay(NCard card)
     {
         var model = card.Model;
-        if (model == null || !IsInHand(model))
+        if (model == null || !HasAny() || !IsInHand(model))
+        {
+            HideIcons(card);
+            return;
+        }
+        
+        CollectActiveIcons(model, _icons);
+
+        if (_icons.Count == 0)
         {
             HideIcons(card);
             return;
         }
 
-        var icons = GetIconBuffer();
-        CollectActiveIcons(model, relics, icons);
+        var container = EnsureIconContainer(card, _icons.Count);
+        if (container == null) return;
 
-        if (icons.Count == 0)
-        {
-            HideIcons(card);
-            return;
-        }
+        for (var i = 0; i < _icons.Count; i++)
+            SetIcon(container.GetChild<TextureRect>(i), _icons[i]);
 
-        var container = EnsureIconContainer(card, icons.Count);
-        if (container == null)
-            return;
-
-        for (var i = 0; i < icons.Count; i++)
-            SetIcon(container.GetChild<TextureRect>(i), icons[i]);
-
-        for (var i = icons.Count; i < container.GetChildCount(); i++)
+        for (var i = _icons.Count; i < container.GetChildCount(); i++)
             SetIcon(container.GetChild<TextureRect>(i), null);
 
         container.Visible = true;
     }
 
-    private static List<Texture2D> GetIconBuffer()
-    {
-        return _iconBuffer ??= new List<Texture2D>(4);
-    }
-
     private static bool IsInHand(CardModel? card)
     {
-        if (card == null)
-            return false;
-
+        if (card == null) return false;
         var me = LocalContext.GetMe(RunManager.Instance?.State);
-        if (me == null)
-            return false;
+        if (me == null) return false;
 
         return PileType.Hand.GetPile(me).Cards.Contains(card);
     }
 
-    private static bool HasAnyActiveThresholdIcon(CardModel card, in ThresholdRelics relics)
+    private static bool HasAnyActiveThresholdIcon(CardModel card)
     {
-        if (!relics.HasAny)
-            return false;
-
-        var icons = GetIconBuffer();
-        CollectActiveIcons(card, relics, icons);
-        return icons.Count > 0;
+        if (!HasAny()) return false;
+        
+        CollectActiveIcons(card, _icons);
+        return _icons.Count > 0;
     }
 
-    private static void CollectActiveIcons(CardModel card, in ThresholdRelics relics, List<Texture2D> icons)
+    private static void CollectActiveIcons(CardModel card, List<Texture2D> icons)
     {
         icons.Clear();
 
-        if (!relics.HasAny)
+        if (!HasAny())
             return;
+        
+        if (card.Type == CardType.Attack && _penNib?.Status == RelicStatus.Active) icons.Add(_penNib.Icon);
 
-        var penNib = relics.PenNib;
-        if (card.Type == CardType.Attack && penNib?.Status == RelicStatus.Active)
-        {
-            icons.Add(penNib.Icon);
-        }
+        if (card.Type == CardType.Attack && _nunchaku?.Status == RelicStatus.Active) icons.Add(_nunchaku.Icon);
 
-        var nunchaku = relics.Nunchaku;
-        if (card.Type == CardType.Attack && nunchaku?.Status == RelicStatus.Active)
-        {
-            icons.Add(nunchaku.Icon);
-        }
+        if (card.Type == CardType.Skill && _tuningFork?.Status == RelicStatus.Active) icons.Add(_tuningFork.Icon);
 
-        var tuningFork = relics.TuningFork;
-        if (card.Type == CardType.Skill && tuningFork?.Status == RelicStatus.Active)
-        {
-            icons.Add(tuningFork.Icon);
-        }
-
-        var galacticDust = relics.GalacticDust;
-        if (ShouldShowGalacticDust(card, galacticDust))
-        {
-            icons.Add(galacticDust!.Icon);
-        }
+        if (ShouldShowGalacticDust(card)) icons.Add(_galacticDust!.Icon);
     }
 
-    private static bool ShouldShowGalacticDust(CardModel card, GalacticDust? galacticDust)
+    private static bool ShouldShowGalacticDust(CardModel card)
     {
-        if (galacticDust == null)
-            return false;
+        if (_galacticDust == null) return false;
 
-        var threshold = galacticDust.DynamicVars.Stars.IntValue;
-        if (threshold <= 0 || card.CurrentStarCost <= 0)
-            return false;
+        var threshold = _galacticDust.DynamicVars.Stars.IntValue;
+        if (threshold <= 0 || card.CurrentStarCost <= 0) return false;
 
-        return (galacticDust.StarsSpent % threshold) + card.CurrentStarCost >= threshold;
+        return (_galacticDust.StarsSpent % threshold) + card.CurrentStarCost >= threshold;
     }
 
+    // Icon container management
     private static Control? EnsureIconContainer(NCard card, int requiredIconSlots)
     {
         var body = card.Body;
@@ -246,41 +246,34 @@ public static class ThresholdRelicCardOverlay
             SetIcon(container.GetChild<TextureRect>(i), null);
     }
 
-    private static ThresholdRelics GetThresholdRelics()
+    
+    // Relic management
+    private static PenNib? _penNib;
+    private static Nunchaku? _nunchaku;
+    private static TuningFork? _tuningFork;
+    private static GalacticDust? _galacticDust;
+    
+    private static bool HasAny()
     {
-        var me = LocalContext.GetMe(RunManager.Instance?.State);
-        if (me == null)
-            return default;
-
-        PenNib? penNib = null;
-        Nunchaku? nunchaku = null;
-        TuningFork? tuningFork = null;
-        GalacticDust? galacticDust = null;
-
-        foreach (var relic in me.Relics)
-        {
-            switch (relic)
-            {
-                case PenNib pn:
-                    penNib = pn;
-                    break;
-                case Nunchaku n:
-                    nunchaku = n;
-                    break;
-                case TuningFork tf:
-                    tuningFork = tf;
-                    break;
-                case GalacticDust gd:
-                    galacticDust = gd;
-                    break;
-            }
-        }
-
-        return new ThresholdRelics(penNib, nunchaku, tuningFork, galacticDust);
+        return _penNib != null || _galacticDust != null || _nunchaku != null || _tuningFork != null;
     }
-
-    private readonly record struct ThresholdRelics(PenNib? PenNib, Nunchaku? Nunchaku, TuningFork? TuningFork, GalacticDust? GalacticDust)
+    
+    private static void IdentifyThresholdRelic(RelicModel relic)
     {
-        public bool HasAny => PenNib != null || Nunchaku != null || TuningFork != null || GalacticDust != null;
+        switch (relic)
+        {
+            case PenNib pn:
+                _penNib = pn;
+                break;
+            case Nunchaku n:
+                _nunchaku = n;
+                break;
+            case TuningFork tf:
+                _tuningFork = tf;
+                break;
+            case GalacticDust gd:
+                _galacticDust = gd;
+                break;
+        }
     }
 }
