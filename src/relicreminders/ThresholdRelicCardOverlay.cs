@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MintySpire2.util;
 
 namespace MintySpire2.relicreminders;
 
@@ -107,7 +108,7 @@ public static class ThresholdRelicCardOverlay
     private static void RefreshCardOverlay(NCard card)
     {
         var model = card.Model;
-        if (model == null || !HasAny() || !IsInHand(model))
+        if (model == null || !HasAny() || !Wiz.IsInMyHand(model))
         {
             HideIcons(card);
             return;
@@ -133,14 +134,7 @@ public static class ThresholdRelicCardOverlay
         container.Visible = true;
     }
 
-    private static bool IsInHand(CardModel? card)
-    {
-        if (card == null) return false;
-        var me = LocalContext.GetMe(RunManager.Instance?.State);
-        if (me == null) return false;
-
-        return PileType.Hand.GetPile(me).Cards.Contains(card);
-    }
+    
 
     private static bool HasAnyActiveThresholdIcon(CardModel card)
     {
