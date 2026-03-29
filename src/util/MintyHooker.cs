@@ -70,16 +70,23 @@ public class MintyHooker : AbstractModel
         return Task.CompletedTask;
     }
 
-    // History Course
+    // History Course & Threshold relics
     public override Task AfterCardPlayed(PlayerChoiceContext context, CardPlay cardPlay)
     {
         HistoryCourseTooltip.HistoryStartPulse(Wiz.p()?.GetRelic<HistoryCourse>(), cardPlay);
+        ThresholdRelicCardOverlay.RefreshTrackedCardOverlays();
         return Task.CompletedTask;
     }
 
     public override Task AfterCombatEnd(CombatRoom room)
     {
         HistoryCourseTooltip.HistoryStopPulseOnCombatEnd(Wiz.p()?.GetRelic<HistoryCourse>());
+        return Task.CompletedTask;
+    }
+
+    public override Task AfterStarsSpent(int amount, Player spender)
+    {
+        ThresholdRelicCardOverlay.RefreshTrackedCardOverlays();
         return Task.CompletedTask;
     }
 }

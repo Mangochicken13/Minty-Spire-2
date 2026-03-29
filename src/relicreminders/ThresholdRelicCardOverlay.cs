@@ -24,7 +24,7 @@ public static class ThresholdRelicCardOverlay
     private const string IconContainerNodeName = "MintyThresholdRelicIcons";
     private static readonly HashSet<NCard> TrackedCards = [];
 
-    private static readonly List<Texture2D> _icons = new List<Texture2D>(4);
+    private static readonly List<Texture2D> _icons = new(4);
     
     [HarmonyPatch(typeof(CombatRoom), "StartCombat")]
     [HarmonyPostfix]
@@ -46,7 +46,7 @@ public static class ThresholdRelicCardOverlay
     static void CatchCombatEnd()
     {
         TrackedCards.Clear();
-        var me = LocalContext.GetMe(RunManager.Instance?.State);
+        var me = Wiz.p();
         if (me != null) me.RelicObtained -= IdentifyThresholdRelic;
     }
 
@@ -72,22 +72,6 @@ public static class ThresholdRelicCardOverlay
         }
     }
 
-    [HarmonyPatch]
-    private static class CatchRefreshEvents
-    {
-        [HarmonyTargetMethods]
-        static IEnumerable<MethodBase> TargetMethods() =>
-        [
-            typeof(PenNib).Method(nameof(PenNib.AfterCardPlayed)),
-            typeof(Nunchaku).Method(nameof(Nunchaku.AfterCardPlayed)),
-            typeof(TuningFork).Method(nameof(TuningFork.AfterCardPlayed)),
-            typeof(GalacticDust).Method(nameof(GalacticDust.AfterStarsSpent)),
-        ];
-
-        [HarmonyPostfix]
-        static void CatchAfterCardPlayed() => RefreshTrackedCardOverlays();
-    }
-
     [HarmonyPatch(typeof(CardModel), "ShouldGlowGoldInternal", MethodType.Getter)]
     [HarmonyPostfix]
     public static void ShouldGlowGoldInternal_Postfix(CardModel __instance, ref bool __result)
@@ -97,8 +81,9 @@ public static class ThresholdRelicCardOverlay
     }
 
 
-    private static void RefreshTrackedCardOverlays()
+    public static void RefreshTrackedCardOverlays()
     {
+        if(!HasAny()) return;
         foreach (var card in TrackedCards)
         {
             RefreshCardOverlay(card);
