@@ -30,13 +30,14 @@ public static class ThresholdRelicCardOverlay
     [HarmonyPostfix]
     static void CatchCombatStart(IRunState? runState)
     {
-        var me = Wiz.p();
+        var me = LocalContext.GetMe(runState);
         if (me == null) return;
         foreach (var relic in me.Relics)
         {
             IdentifyThresholdRelic(relic);
         }
 
+        me.RelicObtained -= IdentifyThresholdRelic;
         me.RelicObtained += IdentifyThresholdRelic;
     }
 
@@ -81,7 +82,7 @@ public static class ThresholdRelicCardOverlay
         var model = card.Model;
         if (model == null || !HasAny())
         {
-            HideIcons(card);
+            HideIcons(holder);
             return;
         }
         
@@ -89,11 +90,11 @@ public static class ThresholdRelicCardOverlay
 
         if (_icons.Count == 0)
         {
-            HideIcons(card);
+            HideIcons(holder);
             return;
         }
 
-        var container = EnsureIconContainer(card, _icons.Count);
+        var container = EnsureIconContainer(holder, _icons.Count);
         if (container == null) return;
 
         for (var i = 0; i < _icons.Count; i++)
@@ -145,11 +146,9 @@ public static class ThresholdRelicCardOverlay
     }
 
     // Icon container management
-    private static Control? EnsureIconContainer(NCard card, int requiredIconSlots)
+    private static Control? EnsureIconContainer(NHandCardHolder holder, int requiredIconSlots)
     {
-        var body = card.Body;
-
-        var container = body.GetNodeOrNull<Control>(IconContainerNodeName);
+        var container = holder.GetNodeOrNull<Control>(IconContainerNodeName);
         if (container == null)
         {
             container = new Control
@@ -163,7 +162,7 @@ public static class ThresholdRelicCardOverlay
                 Visible = false,
             };
 
-            body.AddChild(container);
+            holder.AddChild(container);
         }
 
         while (container.GetChildCount() < requiredIconSlots)
@@ -200,12 +199,10 @@ public static class ThresholdRelicCardOverlay
         iconRect.Visible = texture != null;
     }
 
-    private static void HideIcons(NCard card)
+    private static void HideIcons(NHandCardHolder holder)
     {
-        if (!GodotObject.IsInstanceValid(card)) return;
-        var container = card.Body?.GetNodeOrNull<Control>(IconContainerNodeName);
-        if (container == null)
-            return;
+        var container = holder.GetNodeOrNull<Control>(IconContainerNodeName);
+        if (container == null) return;
 
         container.Visible = false;
 
