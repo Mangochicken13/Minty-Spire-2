@@ -57,12 +57,12 @@ public static class ThresholdRelicCardOverlay
         RefreshCardOverlay(__result);
     }
 
-    [HarmonyPatch(typeof(NHandCardHolder), "ShouldGlowGold", MethodType.Getter)]
+    [HarmonyPatch(typeof(CardModel), "ShouldGlowGold", MethodType.Getter)]
     [HarmonyPostfix]
-    public static void ShouldGlowGold_Postfix(NHandCardHolder __instance, ref bool __result)
+    public static void OverrideGoldGlow(CardModel __instance, ref bool __result)
     {
         if (!__result)
-            __result = HasAnyActiveThresholdIcon(__instance.CardNode?.Model);
+            __result = HasAnyActiveThresholdIcon(__instance);
     }
 
 
@@ -77,6 +77,7 @@ public static class ThresholdRelicCardOverlay
 
     private static void RefreshCardOverlay(NHandCardHolder holder)
     {
+        if (!GodotObject.IsInstanceValid(holder)) return;
         var card = holder.CardNode;
         if (card == null) return;
         var model = card.Model;
