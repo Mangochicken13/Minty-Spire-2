@@ -16,7 +16,7 @@ namespace MintySpire2;
 [HarmonyPatch]
 public static class AscHoverTooltips
 {
-    private static List<IHoverTip> _myTips = new List<IHoverTip>();
+    private static List<IHoverTip> _myTips = [];
 
     [HarmonyPatch(typeof(NTopBarPortraitTip), nameof(NTopBarPortraitTip.Initialize))]
     public class InitializeTip
@@ -35,13 +35,13 @@ public static class AscHoverTooltips
         }
     }
 
-    [HarmonyPatch(typeof(NTopBarPortraitTip), "OnHovered")]
+    [HarmonyPatch(typeof(NTopBarPortraitTip), "OnFocus")]
     public class ShowTip
     {
         [HarmonyPrefix]
-        public static bool Prefix(NTopBarPortraitTip __instance, bool ____showTip, IHoverTip ____hoverTip)
+        public static bool Prefix(NTopBarPortraitTip __instance)
         {
-            if (!____showTip)
+            if (!__instance.ShowTip)
                 return false;
             NHoverTipSet.CreateAndShow(__instance, _myTips).GlobalPosition = __instance.GlobalPosition + new Vector2(0, __instance.Size.Y + 20);
 
