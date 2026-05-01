@@ -73,12 +73,17 @@
         <Reference Include="sts2">
             <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
             <Private>false</Private>
-            <Publicize>True</Publicize> <!--Allows private/protected field references but may cause errors.-->
         </Reference>
+        <PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="All"/>
 
         <PackageReference Include="Alchyr.Sts2.BaseLib" Version="*" PrivateAssets="All"/>
         <PackageReference Include="Alchyr.Sts2.ModAnalyzers" Version="*"/>
         <AdditionalFiles Include="MintySpire2/localization/**/*.json"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Not sure if IncludeVirtualMembers should be used? -->
+        <Publicize Include="sts2" IncludeVirtualMembers="true" IncludeCompilerGeneratedMembers="false" />
     </ItemGroup>
 
     <ItemGroup>
@@ -97,13 +102,6 @@
         <None Include="MintySpire2.json"/>
         <None Include="project.godot"/>
         <None Include="MintySpire2/**"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
     </ItemGroup>
 
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent">
