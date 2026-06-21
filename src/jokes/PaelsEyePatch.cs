@@ -25,7 +25,7 @@ public class PaelsLookingEyePatch()
                 return eye;
             }
             else {
-                MainFile.Logger.Info("Oh my god its broken again");
+                MintySpire2Mod.Logger.Info("Oh my god its broken again");
             }
 
             return null;

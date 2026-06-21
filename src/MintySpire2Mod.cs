@@ -7,7 +7,7 @@ using MintySpire2.util;
 namespace MintySpire2;
 
 [ModInitializer(nameof(Initialize))]
-public partial class MainFile : Node
+public partial class MintySpire2Mod : Node
 {
     public const string ModId = "MintySpire2"; //At the moment, this is used only for the Logger and harmony names.
 
